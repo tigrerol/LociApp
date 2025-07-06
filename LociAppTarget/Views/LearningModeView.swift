@@ -56,10 +56,11 @@ struct LearningModeView: View {
                     description: Text("This itinerary has no locations")
                 )
             } else {
-                let location = itinerary.locations[currentLocationIndex]
+                let sortedLocations = itinerary.locations.sorted { $0.sequence < $1.sequence }
+                let location = sortedLocations[currentLocationIndex]
                 
                 VStack(spacing: 20) {
-                    Text("Location \(location.sequence)")
+                    Text("Step \(currentLocationIndex + 1)")
                         .font(.title2)
                         .fontWeight(.semibold)
                     
@@ -110,22 +111,22 @@ struct LearningModeView: View {
                         Spacer()
                         
                         VStack {
-                            Text("\(currentLocationIndex + 1) of \(itinerary.locations.count)")
+                            Text("\(currentLocationIndex + 1) of \(sortedLocations.count)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
-                            ProgressView(value: Double(currentLocationIndex + 1), total: Double(itinerary.locations.count))
+                            ProgressView(value: Double(currentLocationIndex + 1), total: Double(sortedLocations.count))
                                 .frame(width: 100)
                         }
                         
                         Spacer()
                         
                         Button("Next") {
-                            if currentLocationIndex < itinerary.locations.count - 1 {
+                            if currentLocationIndex < sortedLocations.count - 1 {
                                 currentLocationIndex += 1
                             }
                         }
-                        .disabled(currentLocationIndex == itinerary.locations.count - 1)
+                        .disabled(currentLocationIndex == sortedLocations.count - 1)
                         .buttonStyle(.bordered)
                     }
                     .padding()

@@ -306,8 +306,8 @@ class SuperMemoService {
         
         let allLocations: [Location]
         if let itinerary = itinerary {
-            // Filter locations from specific itinerary
-            allLocations = itinerary.locations
+            // Filter locations from specific itinerary - ensure they're sorted
+            allLocations = itinerary.locations.sorted { $0.sequence < $1.sequence }
         } else {
             // Get all locations from all itineraries
             let descriptor = FetchDescriptor<Location>()
