@@ -19,11 +19,12 @@ public final class JSONParser {
     }
     
     public func decodeBase64Image(from base64String: String) -> Data? {
-        let cleanBase64 = base64String
-            .replacingOccurrences(of: "data:image/jpeg;base64,", with: "")
-            .replacingOccurrences(of: "data:image/png;base64,", with: "")
-            .replacingOccurrences(of: "data:image/gif;base64,", with: "")
-        
-        return Data(base64Encoded: cleanBase64)
+        // More robust implementation that handles any data URI format
+        guard let commaIndex = base64String.firstIndex(of: ",") else {
+            // Handle cases where the string is just the base64 data
+            return Data(base64Encoded: base64String)
+        }
+        let base64Substring = base64String[base64String.index(after: commaIndex)...]
+        return Data(base64Encoded: String(base64Substring))
     }
 }
