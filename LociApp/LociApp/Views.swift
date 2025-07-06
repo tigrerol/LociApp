@@ -310,6 +310,7 @@ struct ReviewModeView: View {
     @State private var isLoading = false
     @State private var selectedItinerary: Itinerary?
     @State private var reviewType: ReviewType = .multiple
+    @State private var hasSelectedReviewType = false
     
     enum ReviewType {
         case single
@@ -331,9 +332,9 @@ struct ReviewModeView: View {
                     description: Text("Import JSON files to start reviewing")
                 )
                 .navigationTitle("Review")
-            } else if reviewType == .multiple && selectedItinerary == nil {
+            } else if !hasSelectedReviewType {
                 reviewTypeSelector
-            } else if selectedItinerary == nil && reviewType == .single {
+            } else if reviewType == .single && selectedItinerary == nil {
                 itinerarySelector
             } else if dueLocations.isEmpty && !isLoading {
                 if selectedItinerary != nil {
@@ -379,6 +380,7 @@ struct ReviewModeView: View {
                 Button(action: {
                     reviewType = .multiple
                     selectedItinerary = nil
+                    hasSelectedReviewType = true
                     loadDueLocations()
                 }) {
                     HStack {
@@ -404,6 +406,7 @@ struct ReviewModeView: View {
                 Button(action: {
                     reviewType = .single
                     selectedItinerary = nil
+                    hasSelectedReviewType = true
                 }) {
                     HStack {
                         Image(systemName: "doc.text")
@@ -460,6 +463,7 @@ struct ReviewModeView: View {
                 Button("Back") {
                     reviewType = .multiple
                     selectedItinerary = nil
+                    hasSelectedReviewType = false
                 }
             }
         }
@@ -504,6 +508,7 @@ struct ReviewModeView: View {
                 Button(action: {
                     selectedItinerary = nil
                     reviewType = .multiple
+                    hasSelectedReviewType = false
                 }) {
                     Text("Back to Type Selection")
                         .font(.body)
@@ -762,6 +767,7 @@ struct ReverseModeView: View {
     @State private var isLoading = false
     @State private var selectedItinerary: Itinerary?
     @State private var reviewType: ReviewType = .multiple
+    @State private var hasSelectedReviewType = false
     @FocusState private var isInputFocused: Bool
     
     enum ReviewType {
@@ -783,9 +789,9 @@ struct ReverseModeView: View {
                     description: Text("Import JSON files to start reverse reviewing")
                 )
                 .navigationTitle("Reverse")
-            } else if reviewType == .multiple && selectedItinerary == nil {
+            } else if !hasSelectedReviewType {
                 reverseTypeSelector
-            } else if selectedItinerary == nil && reviewType == .single {
+            } else if reviewType == .single && selectedItinerary == nil {
                 reverseItinerarySelector
             } else if dueLocations.isEmpty && !isLoading {
                 if selectedItinerary != nil {
@@ -831,6 +837,7 @@ struct ReverseModeView: View {
                 Button(action: {
                     reviewType = .multiple
                     selectedItinerary = nil
+                    hasSelectedReviewType = true
                     loadDueLocations()
                 }) {
                     HStack {
@@ -856,6 +863,7 @@ struct ReverseModeView: View {
                 Button(action: {
                     reviewType = .single
                     selectedItinerary = nil
+                    hasSelectedReviewType = true
                 }) {
                     HStack {
                         Image(systemName: "doc.text")
@@ -912,6 +920,7 @@ struct ReverseModeView: View {
                 Button("Back") {
                     reviewType = .multiple
                     selectedItinerary = nil
+                    hasSelectedReviewType = false
                 }
             }
         }
@@ -956,6 +965,7 @@ struct ReverseModeView: View {
                 Button(action: {
                     selectedItinerary = nil
                     reviewType = .multiple
+                    hasSelectedReviewType = false
                 }) {
                     Text("Back to Type Selection")
                         .font(.body)
