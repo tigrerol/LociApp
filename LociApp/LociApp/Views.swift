@@ -554,6 +554,21 @@ struct ReviewModeView: View {
             Spacer()
         }
         .padding()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Cancel") {
+                    // Reset to type selection or itinerary selection based on reviewType
+                    if reviewType == .single {
+                        selectedItinerary = nil
+                    } else {
+                        hasSelectedReviewType = false
+                    }
+                    dueLocations = []
+                    currentLocationIndex = 0
+                    reviewStep = .sequence
+                }
+            }
+        }
     }
     
     private func sequenceStep(for location: Location) -> some View {
@@ -1009,6 +1024,23 @@ struct ReverseModeView: View {
             Spacer()
         }
         .padding()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Cancel") {
+                    // Reset to type selection or itinerary selection based on reviewType
+                    if reviewType == .single {
+                        selectedItinerary = nil
+                    } else {
+                        hasSelectedReviewType = false
+                    }
+                    dueLocations = []
+                    currentLocationIndex = 0
+                    reverseStep = .nameInput
+                    userInput = ""
+                    isCorrect = false
+                }
+            }
+        }
     }
     
     private func nameInputStep(for location: Location) -> some View {
