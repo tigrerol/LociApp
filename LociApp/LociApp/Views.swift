@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import Foundation
 
 // MARK: - Helper Views
 
@@ -192,8 +193,32 @@ struct LearningModeView: View {
         withAnimation {
             for index in offsets {
                 let itinerary = itineraries[index]
+                
+                // Delete all locations associated with this itinerary
+                for location in itinerary.locations {
+                    // Delete any reviews associated with this location
+                    let locationId = location.id
+                    let reviewDescriptor = FetchDescriptor<Review>(
+                        predicate: #Predicate<Review> { review in
+                            review.location.id == locationId
+                        }
+                    )
+                    if let reviews = try? modelContext.fetch(reviewDescriptor) {
+                        for review in reviews {
+                            modelContext.delete(review)
+                        }
+                    }
+                    
+                    // Delete the location
+                    modelContext.delete(location)
+                }
+                
+                // Delete the itinerary
                 modelContext.delete(itinerary)
             }
+            
+            // Save the changes
+            try? modelContext.save()
         }
     }
     
