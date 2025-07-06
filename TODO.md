@@ -2,8 +2,7 @@
 
 ## Pending
 
-### Phase 1: Foundation (Week 1) - PARTIALLY COMPLETE
-- [ ] Basic navigation with TabView (SwiftUI app implementation)
+### Phase 1: Foundation (Week 1) ✅ COMPLETE
 
 ### Phase 2: Learning Mode (Week 2)
 - [ ] Create simple list of itineraries
@@ -40,11 +39,15 @@
 
 ### Phase 1: Foundation ✅
 - [x] Create Xcode project with iOS 18 minimum target - Commit: 1d90741
-- [x] Set up SwiftData container and basic models (sequence, base64 images) - Commit: 1d90741
-- [x] Create JSON import with base64 image decoding functionality - Commit: 1d90741
+- [x] Set up SwiftData container and basic models (sequence, base64 images) - Commit: a66bba8
+- [x] Create JSON import with base64 image decoding functionality - Commit: a66bba8
 - [x] Write comprehensive tests for models and JSON parsing - Commit: 1d90741
 - [x] Initialize git repository and create GitHub repo - Commit: 1d90741
 - [x] Create testFiles directory for JSON test files - Commit: 1d90741
+- [x] Create SwiftData @Model classes (Itinerary, Location, Review) - Commit: a66bba8
+- [x] Create DataService to bridge JSONParser and SwiftData - Commit: a66bba8
+- [x] Create SwiftUI app structure with ModelContainer - Commit: a66bba8
+- [x] Implement ItineraryListView with TabView navigation - Commit: a66bba8
 
 ## Keep It Simple Rules
 1. **Make it work first** - Don't optimize prematurely
