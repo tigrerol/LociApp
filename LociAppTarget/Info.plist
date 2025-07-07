@@ -10,15 +10,29 @@
 			<key>CFBundleTypeName</key>
 			<string>JSON File</string>
 			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
+			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>public.json</string>
 			</array>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>json</string>
+			</array>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>application/json</string>
+			</array>
 		</dict>
 	</array>
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

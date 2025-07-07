@@ -3,13 +3,50 @@ import SwiftData
 import UniformTypeIdentifiers
 import UIKit
 
+struct JSONInputView: View {
+    let onSubmit: (String) -> Void
+    @State private var jsonText = ""
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                Text("Paste JSON Content")
+                    .font(.headline)
+                    .padding()
+                
+                TextEditor(text: $jsonText)
+                    .border(Color.gray, width: 1)
+                    .padding()
+                
+                Text("Paste your JSON itinerary content here")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom)
+                
+                Spacer()
+            }
+            .navigationTitle("Import JSON")
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    dismiss()
+                },
+                trailing: Button("Import") {
+                    onSubmit(jsonText)
+                }
+                .disabled(jsonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            )
+        }
+    }
+}
+
 struct DocumentPicker: UIViewControllerRepresentable {
     let onDocumentSelected: (URL) -> Void
     let onError: (String) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        // Use import mode with deprecated initializer - most reliable
-        let picker = UIDocumentPickerViewController(documentTypes: ["public.json"], in: .import)
+        // iOS 18 fix: Use asCopy parameter to avoid view service termination
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json], asCopy: true)
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
@@ -49,6 +86,7 @@ struct ItineraryListView: View {
     @Query private var itineraries: [Itinerary]
     @State private var dataService = DataService()
     @State private var showingImporter = false
+    @State private var showingJSONInput = false
     @State private var errorMessage: String?
     
     var body: some View {
@@ -69,10 +107,20 @@ struct ItineraryListView: View {
                 }
             }
             .navigationTitle("Itineraries")
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ImportJSONFile"))) { notification in
+                if let url = notification.object as? URL {
+                    handleFileSelection(url: url)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Import") {
-                        showingImporter = true
+                    Menu("Import") {
+                        Button("Import File") {
+                            showingImporter = true
+                        }
+                        Button("Paste JSON") {
+                            showingJSONInput = true
+                        }
                     }
                 }
             }
@@ -87,6 +135,12 @@ struct ItineraryListView: View {
                         errorMessage = error
                     }
                 )
+            }
+            .sheet(isPresented: $showingJSONInput) {
+                JSONInputView { jsonText in
+                    showingJSONInput = false
+                    handleJSONInput(jsonText)
+                }
             }
             .alert("Import Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") {
@@ -107,6 +161,18 @@ struct ItineraryListView: View {
             try dataService.importItineraryFromData(data, context: modelContext)
         } catch {
             errorMessage = "Failed to import JSON file: \(error.localizedDescription)"
+        }
+    }
+    
+    private func handleJSONInput(_ jsonText: String) {
+        do {
+            guard let data = jsonText.data(using: .utf8) else {
+                errorMessage = "Invalid text encoding"
+                return
+            }
+            try dataService.importItineraryFromData(data, context: modelContext)
+        } catch {
+            errorMessage = "Failed to import JSON: \(error.localizedDescription)"
         }
     }
 }

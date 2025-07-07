@@ -8,7 +8,9 @@
       "Bash(git push:*)",
       "Bash(swift test)",
       "Bash(grep:*)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "Bash(gemini:*)",
+      "WebFetch(domain:developer.apple.com)"
     ],
     "deny": []
   }
