@@ -27,15 +27,19 @@ struct JSONInputView: View {
                 Spacer()
             }
             .navigationTitle("Import JSON")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    dismiss()
-                },
-                trailing: Button("Import") {
-                    onSubmit(jsonText)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-                .disabled(jsonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            )
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Import") {
+                        onSubmit(jsonText)
+                    }
+                    .disabled(jsonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
         }
     }
 }
@@ -113,6 +117,11 @@ struct ItineraryListView: View {
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Paste JSON") {
+                        showingJSONInput = true
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu("Import") {
                         Button("Import File") {
