@@ -10,7 +10,15 @@ class DataService {
     
     func importItinerary(from url: URL, context: ModelContext) throws {
         let itineraryJSON = try jsonParser.parseJSONFile(from: url)
-        
+        try processItineraryJSON(itineraryJSON, context: context)
+    }
+    
+    func importItineraryFromData(_ data: Data, context: ModelContext) throws {
+        let itineraryJSON = try jsonParser.parseJSONData(data)
+        try processItineraryJSON(itineraryJSON, context: context)
+    }
+    
+    private func processItineraryJSON(_ itineraryJSON: ItineraryJSON, context: ModelContext) throws {
         for itineraryData in itineraryJSON.itineraries {
             let itinerary = Itinerary(name: itineraryData.name)
             

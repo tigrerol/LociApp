@@ -1,6 +1,48 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import UIKit
+
+struct DocumentPicker: UIViewControllerRepresentable {
+    let onDocumentSelected: (URL) -> Void
+    let onError: (String) -> Void
+    
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        // Use the import initializer instead of opening - this provides a copy
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json])
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        picker.shouldShowFileExtensions = true
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: DocumentPicker
+        
+        init(_ parent: DocumentPicker) {
+            self.parent = parent
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            parent.onDocumentSelected(url)
+        }
+        
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            // User cancelled, no action needed
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentAt url: URL) {
+            parent.onDocumentSelected(url)
+        }
+    }
+}
 
 struct ItineraryListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -34,12 +76,17 @@ struct ItineraryListView: View {
                     }
                 }
             }
-            .fileImporter(
-                isPresented: $showingImporter,
-                allowedContentTypes: [.json],
-                allowsMultipleSelection: false
-            ) { result in
-                handleImport(result: result)
+            .sheet(isPresented: $showingImporter) {
+                DocumentPicker(
+                    onDocumentSelected: { url in
+                        showingImporter = false
+                        handleFileSelection(url: url)
+                    },
+                    onError: { error in
+                        showingImporter = false
+                        errorMessage = error
+                    }
+                )
             }
             .alert("Import Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") {
@@ -53,41 +100,34 @@ struct ItineraryListView: View {
         }
     }
     
-    private func handleImport(result: Result<[URL], Error>) {
-        switch result {
-        case .success(let urls):
-            guard let url = urls.first else { return }
-            
-            // Start accessing the security-scoped resource
-            guard url.startAccessingSecurityScopedResource() else {
-                errorMessage = "Cannot access the selected file. Please try again."
-                return
-            }
-            
+    private func handleFileSelection(url: URL) {
+        // Use NSFileCoordinator for safe file access
+        let coordinator = NSFileCoordinator()
+        var error: NSError?
+        var data: Data?
+        
+        coordinator.coordinate(readingItemAt: url, options: [], error: &error) { (readingURL) in
             do {
-                // Create a temporary file URL
-                let tempDirectory = FileManager.default.temporaryDirectory
-                let tempFileURL = tempDirectory.appendingPathComponent(UUID().uuidString + ".json")
-                
-                // Copy the file to temporary directory while we have access
-                try FileManager.default.copyItem(at: url, to: tempFileURL)
-                
-                // Stop accessing the original file
-                url.stopAccessingSecurityScopedResource()
-                
-                // Now work with the copied file
-                try dataService.importItinerary(from: tempFileURL, context: modelContext)
-                
-                // Clean up the temporary file
-                try? FileManager.default.removeItem(at: tempFileURL)
-                
+                data = try Data(contentsOf: readingURL)
             } catch {
-                url.stopAccessingSecurityScopedResource()
-                errorMessage = "Failed to import JSON file: \(error.localizedDescription)"
+                self.errorMessage = "Failed to read file: \(error.localizedDescription)"
             }
-            
-        case .failure(let error):
-            errorMessage = "Failed to select file: \(error.localizedDescription)"
+        }
+        
+        if let error = error {
+            errorMessage = "File coordination failed: \(error.localizedDescription)"
+            return
+        }
+        
+        guard let fileData = data else {
+            errorMessage = "No data could be read from the file"
+            return
+        }
+        
+        do {
+            try dataService.importItineraryFromData(fileData, context: modelContext)
+        } catch {
+            errorMessage = "Failed to import JSON file: \(error.localizedDescription)"
         }
     }
 }
