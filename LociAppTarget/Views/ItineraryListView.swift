@@ -58,9 +58,31 @@ struct ItineraryListView: View {
         case .success(let urls):
             guard let url = urls.first else { return }
             
+            // Start accessing the security-scoped resource
+            guard url.startAccessingSecurityScopedResource() else {
+                errorMessage = "Cannot access the selected file. Please try again."
+                return
+            }
+            
             do {
-                try dataService.importItinerary(from: url, context: modelContext)
+                // Create a temporary file URL
+                let tempDirectory = FileManager.default.temporaryDirectory
+                let tempFileURL = tempDirectory.appendingPathComponent(UUID().uuidString + ".json")
+                
+                // Copy the file to temporary directory while we have access
+                try FileManager.default.copyItem(at: url, to: tempFileURL)
+                
+                // Stop accessing the original file
+                url.stopAccessingSecurityScopedResource()
+                
+                // Now work with the copied file
+                try dataService.importItinerary(from: tempFileURL, context: modelContext)
+                
+                // Clean up the temporary file
+                try? FileManager.default.removeItem(at: tempFileURL)
+                
             } catch {
+                url.stopAccessingSecurityScopedResource()
                 errorMessage = "Failed to import JSON file: \(error.localizedDescription)"
             }
             

@@ -10,14 +10,6 @@ public final class JSONParser {
     public init() {}
     
     public func parseJSONFile(from url: URL) throws -> ItineraryJSON {
-        // Access security-scoped resource for iOS file picker
-        let accessing = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessing {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
-        
         let data = try Data(contentsOf: url)
         return try JSONDecoder().decode(ItineraryJSON.self, from: data)
     }
