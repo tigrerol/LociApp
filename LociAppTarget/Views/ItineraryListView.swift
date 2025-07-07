@@ -117,19 +117,16 @@ struct ItineraryListView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Paste JSON") {
-                        showingJSONInput = true
-                    }
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu("Import") {
-                        Button("Import File") {
+                    Menu {
+                        Button("Import File", systemImage: "doc.badge.plus") {
                             showingImporter = true
                         }
-                        Button("Paste JSON") {
+                        Button("Paste JSON", systemImage: "doc.plaintext") {
                             showingJSONInput = true
                         }
+                    } label: {
+                        Image(systemName: "plus")
                     }
                 }
             }
