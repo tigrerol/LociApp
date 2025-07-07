@@ -8,8 +8,8 @@ struct DocumentPicker: UIViewControllerRepresentable {
     let onError: (String) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        // Use the import initializer instead of opening - this provides a copy
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json])
+        // Use import mode with deprecated initializer - most reliable
+        let picker = UIDocumentPickerViewController(documentTypes: ["public.json"], in: .import)
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
@@ -101,31 +101,10 @@ struct ItineraryListView: View {
     }
     
     private func handleFileSelection(url: URL) {
-        // Use NSFileCoordinator for safe file access
-        let coordinator = NSFileCoordinator()
-        var error: NSError?
-        var data: Data?
-        
-        coordinator.coordinate(readingItemAt: url, options: [], error: &error) { (readingURL) in
-            do {
-                data = try Data(contentsOf: readingURL)
-            } catch {
-                self.errorMessage = "Failed to read file: \(error.localizedDescription)"
-            }
-        }
-        
-        if let error = error {
-            errorMessage = "File coordination failed: \(error.localizedDescription)"
-            return
-        }
-        
-        guard let fileData = data else {
-            errorMessage = "No data could be read from the file"
-            return
-        }
-        
+        // Simplest possible file reading - import mode should give us direct access
         do {
-            try dataService.importItineraryFromData(fileData, context: modelContext)
+            let data = try Data(contentsOf: url)
+            try dataService.importItineraryFromData(data, context: modelContext)
         } catch {
             errorMessage = "Failed to import JSON file: \(error.localizedDescription)"
         }
