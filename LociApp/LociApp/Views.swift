@@ -156,6 +156,8 @@ struct LearningModeView: View {
     @State private var showingJSONInput = false
     @State private var errorMessage: String?
     @State private var urlToImport: URL?
+    @State private var audioMode = false
+    @State private var speechService = SpeechService()
     
     var body: some View {
         NavigationView {
@@ -306,6 +308,33 @@ struct LearningModeView: View {
         }
     }
     
+    private func speakCurrentLocationIfNeeded() {
+        guard audioMode, let selectedItinerary else { return }
+        
+        let sortedLocations = selectedItinerary.locations.sorted { $0.sequence < $1.sequence }
+        guard currentLocationIndex < sortedLocations.count else { return }
+        
+        let location = sortedLocations[currentLocationIndex]
+        let textToSpeak = "Step \(location.sequence + 1). \(location.name). \(location.locationDescription)"
+        
+        speechService.speak(text: textToSpeak)
+    }
+    
+    private func advanceToNextLocation() {
+        guard audioMode, let selectedItinerary else { return }
+        
+        let sortedLocations = selectedItinerary.locations.sorted { $0.sequence < $1.sequence }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if self.currentLocationIndex < sortedLocations.count - 1 {
+                self.currentLocationIndex += 1
+            } else {
+                // End of itinerary - turn off audio mode
+                self.audioMode = false
+            }
+        }
+    }
+    
     private func deleteItinerary(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
@@ -379,10 +408,19 @@ struct LearningModeView: View {
                             )
                     }
                     
-                    Text(location.name)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .multilineTextAlignment(.center)
+                    HStack {
+                        Text(location.name)
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .multilineTextAlignment(.center)
+                        
+                        if speechService.isSpeaking {
+                            Image(systemName: "speaker.wave.2.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                                .symbolEffect(.pulse)
+                        }
+                    }
                     
                     Text(location.locationDescription)
                         .font(.body)
@@ -393,11 +431,12 @@ struct LearningModeView: View {
                     
                     HStack {
                         Button("Previous") {
+                            speechService.stop()
                             if currentLocationIndex > 0 {
                                 currentLocationIndex -= 1
                             }
                         }
-                        .disabled(currentLocationIndex == 0)
+                        .disabled(currentLocationIndex == 0 || (audioMode && speechService.isSpeaking))
                         .buttonStyle(.bordered)
                         
                         Spacer()
@@ -414,17 +453,39 @@ struct LearningModeView: View {
                         Spacer()
                         
                         Button("Next") {
+                            speechService.stop()
                             if currentLocationIndex < sortedLocations.count - 1 {
                                 currentLocationIndex += 1
                             }
                         }
-                        .disabled(currentLocationIndex == sortedLocations.count - 1)
+                        .disabled(currentLocationIndex == sortedLocations.count - 1 || (audioMode && speechService.isSpeaking))
                         .buttonStyle(.bordered)
                     }
                     .padding()
                     .background(Color(UIColor.systemBackground))
                 }
                 .padding()
+                .onAppear {
+                    speakCurrentLocationIfNeeded()
+                }
+                .onChange(of: currentLocationIndex) { oldValue, newValue in
+                    speakCurrentLocationIfNeeded()
+                }
+                .onChange(of: audioMode) { oldValue, newValue in
+                    if newValue {
+                        speakCurrentLocationIfNeeded()
+                    } else {
+                        speechService.stop()
+                    }
+                }
+                .onReceive(speechService.speechCompleted) { _ in
+                    if audioMode {
+                        advanceToNextLocation()
+                    }
+                }
+                .onDisappear {
+                    speechService.stop()
+                }
             }
         }
         .navigationTitle(itinerary.name)
@@ -432,7 +493,33 @@ struct LearningModeView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Back") {
+                    speechService.stop()
                     selectedItinerary = nil
+                    audioMode = false
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                HStack {
+                    Menu {
+                        ForEach(speechService.availableVoices, id: \.identifier) { voice in
+                            Button(action: {
+                                speechService.setVoice(voice)
+                            }) {
+                                HStack {
+                                    Text(speechService.getVoiceName(voice))
+                                    if voice.identifier == speechService.selectedVoice?.identifier {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "person.wave.2")
+                    }
+                    .disabled(!audioMode)
+                    
+                    Toggle("Audio", isOn: $audioMode)
+                        .toggleStyle(SwitchToggleStyle())
                 }
             }
         }
