@@ -10,7 +10,15 @@
       "Bash(grep:*)",
       "Bash(xcodebuild:*)",
       "Bash(gemini:*)",
-      "WebFetch(domain:developer.apple.com)"
+      "WebFetch(domain:developer.apple.com)",
+      "Bash(find:*)",
+      "Bash(swift build)",
+      "Bash(diff:*)",
+      "Bash(chmod:*)",
+      "Bash(./cleanup_unused.sh:*)",
+      "Bash(rm:*)",
+      "Bash(swiftc:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }

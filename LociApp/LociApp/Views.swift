@@ -121,6 +121,17 @@ struct ItineraryListView: View {
         case .success(let urls):
             guard let url = urls.first else { return }
             
+            // Request access to security-scoped resource
+            guard url.startAccessingSecurityScopedResource() else {
+                errorMessage = "Failed to access selected file"
+                return
+            }
+            
+            // Ensure we stop accessing the resource when done
+            defer {
+                url.stopAccessingSecurityScopedResource()
+            }
+            
             do {
                 try dataService.importItinerary(from: url, context: modelContext)
             } catch {
@@ -260,6 +271,17 @@ struct LearningModeView: View {
         switch result {
         case .success(let urls):
             guard let url = urls.first else { return }
+            
+            // Request access to security-scoped resource
+            guard url.startAccessingSecurityScopedResource() else {
+                errorMessage = "Failed to access selected file"
+                return
+            }
+            
+            // Ensure we stop accessing the resource when done
+            defer {
+                url.stopAccessingSecurityScopedResource()
+            }
             
             do {
                 try dataService.importItinerary(from: url, context: modelContext)
