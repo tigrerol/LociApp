@@ -211,7 +211,10 @@ class DataService {
     
     func importItinerary(from url: URL, context: ModelContext) throws {
         let data = try Data(contentsOf: url)
-        
+        try importItineraryFromData(data, context: context)
+    }
+    
+    func importItineraryFromData(_ data: Data, context: ModelContext) throws {
         // Try to decode as multiple itineraries format first
         if let jsonData = try? JSONDecoder().decode(ItineraryJSON.self, from: data) {
             for itineraryData in jsonData.itineraries {

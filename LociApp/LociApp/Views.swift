@@ -2,8 +2,50 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 import Foundation
+import Combine
 
 // MARK: - Helper Views
+
+struct JSONInputView: View {
+    let onSubmit: (String) -> Void
+    @State private var jsonText = ""
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                Text("Paste JSON Content")
+                    .font(.headline)
+                    .padding()
+                
+                TextEditor(text: $jsonText)
+                    .border(Color.gray, width: 1)
+                    .padding()
+                
+                Text("Paste your JSON itinerary content here")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom)
+                
+                Spacer()
+            }
+            .navigationTitle("Import JSON")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Import") {
+                        onSubmit(jsonText)
+                    }
+                    .disabled(jsonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+}
 
 struct ColoredItineraryName: View {
     let itinerary: Itinerary
@@ -100,7 +142,9 @@ struct LearningModeView: View {
     @State private var currentLocationIndex = 0
     @State private var dataService = DataService()
     @State private var showingImporter = false
+    @State private var showingJSONInput = false
     @State private var errorMessage: String?
+    @State private var urlToImport: URL?
     
     var body: some View {
         NavigationView {
@@ -112,8 +156,15 @@ struct LearningModeView: View {
                 )
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Import") {
-                            showingImporter = true
+                        Menu {
+                            Button("Import File", systemImage: "doc.badge.plus") {
+                                showingImporter = true
+                            }
+                            Button("Paste JSON", systemImage: "doc.plaintext") {
+                                showingJSONInput = true
+                            }
+                        } label: {
+                            Text("Import")
                         }
                     }
                 }
@@ -130,6 +181,12 @@ struct LearningModeView: View {
         ) { result in
             handleImport(result: result)
         }
+        .sheet(isPresented: $showingJSONInput) {
+            JSONInputView { jsonText in
+                showingJSONInput = false
+                handleJSONInput(jsonText)
+            }
+        }
         .alert("Import Error", isPresented: .constant(errorMessage != nil)) {
             Button("OK") {
                 errorMessage = nil
@@ -137,6 +194,32 @@ struct LearningModeView: View {
         } message: {
             if let errorMessage {
                 Text(errorMessage)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ImportJSONFile"))) { notification in
+            if let url = notification.object as? URL {
+                urlToImport = url
+            }
+        }
+        .onChange(of: urlToImport) { oldValue, newValue in
+            if let url = newValue {
+                do {
+                    try dataService.importItinerary(from: url, context: modelContext)
+                    urlToImport = nil
+                    
+                    // Clean up temporary file if it exists
+                    if url.path.contains(FileManager.default.temporaryDirectory.path) {
+                        try? FileManager.default.removeItem(at: url)
+                    }
+                } catch {
+                    errorMessage = "Failed to import shared file: \(error.localizedDescription)"
+                    urlToImport = nil
+                    
+                    // Clean up temporary file if it exists
+                    if url.path.contains(FileManager.default.temporaryDirectory.path) {
+                        try? FileManager.default.removeItem(at: url)
+                    }
+                }
             }
         }
     }
@@ -186,6 +269,18 @@ struct LearningModeView: View {
             
         case .failure(let error):
             errorMessage = "Failed to select file: \(error.localizedDescription)"
+        }
+    }
+    
+    private func handleJSONInput(_ jsonText: String) {
+        do {
+            guard let data = jsonText.data(using: .utf8) else {
+                errorMessage = "Invalid text encoding"
+                return
+            }
+            try dataService.importItineraryFromData(data, context: modelContext)
+        } catch {
+            errorMessage = "Failed to import JSON: \(error.localizedDescription)"
         }
     }
     
