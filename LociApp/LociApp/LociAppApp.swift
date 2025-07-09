@@ -1,14 +1,20 @@
 import SwiftUI
 import SwiftData
 import Foundation
+import UserNotifications
 
 @main
 struct LociAppApp: App {
+    @State private var notificationService = NotificationService.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
                     handleFileImport(url: url)
+                }
+                .task {
+                    await requestNotificationPermissions()
                 }
         }
         .modelContainer(for: [
@@ -48,6 +54,15 @@ struct LociAppApp: App {
                 name: NSNotification.Name("ImportJSONFile"),
                 object: url
             )
+        }
+    }
+    
+    private func requestNotificationPermissions() async {
+        let granted = await notificationService.requestAuthorization()
+        if granted {
+            print("Notification permissions granted")
+        } else {
+            print("Notification permissions denied")
         }
     }
 }

@@ -335,6 +335,27 @@ struct LearningModeView: View {
         }
     }
     
+    private func colorForQuality(_ quality: SpeechService.VoiceQuality) -> Color {
+        switch quality {
+        case .standard:
+            return .secondary
+        case .enhanced:
+            return .orange
+        case .premium:
+            return .green
+        }
+    }
+    
+    private func qualityIndicator(for quality: SpeechService.VoiceQuality) -> some View {
+        HStack(spacing: 2) {
+            ForEach(0..<3) { index in
+                Circle()
+                    .fill(index < quality.rawValue + 1 ? colorForQuality(quality) : Color.gray.opacity(0.3))
+                    .frame(width: 4, height: 4)
+            }
+        }
+    }
+    
     private func deleteItinerary(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
@@ -506,7 +527,10 @@ struct LearningModeView: View {
                                 speechService.setVoice(voice)
                             }) {
                                 HStack {
-                                    Text(speechService.getVoiceName(voice))
+                                    Text("\(speechService.getVoiceName(voice)) (\(speechService.getVoiceQuality(voice).description))")
+                                    
+                                    Spacer()
+                                    
                                     if voice.identifier == speechService.selectedVoice?.identifier {
                                         Image(systemName: "checkmark")
                                     }
@@ -983,9 +1007,13 @@ struct ReviewModeView: View {
             try superMemoService.reviewLocation(location, quality: quality)
             
             if currentLocationIndex < dueLocations.count - 1 {
-                currentLocationIndex += 1
+                // Reset to sequence step first to avoid showing the answer
                 withAnimation {
                     reviewStep = .sequence
+                }
+                // Then move to next location after a brief delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    currentLocationIndex += 1
                 }
             } else {
                 loadDueLocations()
@@ -1434,6 +1462,8 @@ struct ReverseModeView: View {
         isLoading = true
         do {
             dueLocations = try superMemoService.getDueLocations(from: selectedItinerary)
+            // Shuffle locations for random order in reverse mode
+            dueLocations.shuffle()
             currentLocationIndex = 0
             reverseStep = .nameInput
         } catch {
@@ -1447,6 +1477,8 @@ struct ReverseModeView: View {
         isLoading = true
         do {
             dueLocations = try superMemoService.getDueLocations(from: selectedItinerary, forceAll: true)
+            // Shuffle locations for random order in reverse mode
+            dueLocations.shuffle()
             currentLocationIndex = 0
             reverseStep = .nameInput
         } catch {
