@@ -1,7 +1,6 @@
 import Foundation
 import SwiftData
 import SwiftUI
-import SuperMemoKit
 
 // MARK: - SwiftData Models
 
@@ -123,9 +122,8 @@ struct SingleLocationData: Codable {
 
 // MARK: - Type Aliases for SuperMemoKit Integration
 
-// Use SuperMemoKit's enhanced algorithm with type aliases for compatibility
-public typealias SuperMemoQuality = SuperMemoKit.SuperMemoQuality
-public typealias SuperMemoResult = SuperMemoKit.SuperMemoResult
+// SuperMemoKit is now included directly in the project
+// No need for type aliases since the types are available directly
 
 // MARK: - Services
 

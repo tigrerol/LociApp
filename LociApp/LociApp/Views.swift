@@ -3,7 +3,6 @@ import SwiftData
 import UniformTypeIdentifiers
 import Foundation
 import Combine
-import SuperMemoKit
 
 // MARK: - Helper Views
 
