@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import SwiftUI
+import SuperMemoKit
 
 // MARK: - SwiftData Models
 
@@ -120,79 +121,11 @@ struct SingleLocationData: Codable {
     let image: String?
 }
 
-// MARK: - SuperMemo Algorithm
+// MARK: - Type Aliases for SuperMemoKit Integration
 
-enum SuperMemoQuality: Int, CaseIterable {
-    case blackout = 0
-    case incorrect = 1
-    case incorrectEasy = 2
-    case difficult = 3
-    case hesitant = 4
-    case perfect = 5
-    
-    var description: String {
-        switch self {
-        case .blackout: return "Complete blackout"
-        case .incorrect: return "Incorrect"
-        case .incorrectEasy: return "Incorrect but easy"
-        case .difficult: return "Correct but difficult"
-        case .hesitant: return "Correct with hesitation"
-        case .perfect: return "Perfect recall"
-        }
-    }
-}
-
-struct SuperMemoResult {
-    let easeFactor: Double
-    let intervalDays: Int
-    let repetitionCount: Int
-    let nextReviewDate: Date
-}
-
-class SuperMemoAlgorithm {
-    static func calculateNextReview(
-        currentEaseFactor: Double,
-        currentInterval: Int,
-        repetitionCount: Int,
-        quality: SuperMemoQuality
-    ) -> SuperMemoResult {
-        
-        var newEaseFactor = currentEaseFactor
-        var newInterval = currentInterval
-        var newRepetition = repetitionCount
-        
-        if quality.rawValue >= 3 {
-            newEaseFactor = currentEaseFactor + (0.1 - Double(5 - quality.rawValue) * (0.08 + Double(5 - quality.rawValue) * 0.02))
-            newEaseFactor = max(1.3, newEaseFactor)
-            newRepetition = repetitionCount + 1
-            
-            switch newRepetition {
-            case 1:
-                newInterval = 1
-            case 2:
-                newInterval = 6
-            default:
-                newInterval = Int(round(Double(currentInterval) * newEaseFactor))
-            }
-        } else {
-            newInterval = 1
-            newRepetition = 0
-        }
-        
-        let nextReviewDate = Calendar.current.date(
-            byAdding: .day,
-            value: newInterval,
-            to: Date()
-        ) ?? Date()
-        
-        return SuperMemoResult(
-            easeFactor: newEaseFactor,
-            intervalDays: newInterval,
-            repetitionCount: newRepetition,
-            nextReviewDate: nextReviewDate
-        )
-    }
-}
+// Use SuperMemoKit's enhanced algorithm with type aliases for compatibility
+public typealias SuperMemoQuality = SuperMemoKit.SuperMemoQuality
+public typealias SuperMemoResult = SuperMemoKit.SuperMemoResult
 
 // MARK: - Services
 
@@ -292,8 +225,11 @@ class DataService {
 @Observable
 class SuperMemoService {
     private var modelContext: ModelContext?
+    private let superMemoAlgorithm: SuperMemoAlgorithm
     
-    init() {}
+    init() {
+        self.superMemoAlgorithm = SuperMemoAlgorithm()
+    }
     
     func setModelContext(_ context: ModelContext) {
         self.modelContext = context
@@ -336,16 +272,16 @@ class SuperMemoService {
             throw ServiceError.contextNotSet
         }
         
-        let result = SuperMemoAlgorithm.calculateNextReview(
+        let result = superMemoAlgorithm.calculateNextReview(
             currentEaseFactor: location.easeFactor,
-            currentInterval: location.intervalDays,
-            repetitionCount: location.repetitionCount,
+            currentInterval: Int32(location.intervalDays),
+            repetitionCount: Int16(location.repetitionCount),
             quality: quality
         )
         
         location.easeFactor = result.easeFactor
-        location.intervalDays = result.intervalDays
-        location.repetitionCount = result.repetitionCount
+        location.intervalDays = Int(result.intervalDays)
+        location.repetitionCount = Int(result.repetitionCount)
         location.nextReview = result.nextReviewDate
         
         let review = Review(

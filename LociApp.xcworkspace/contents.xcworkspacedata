@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:LociApp.xcodeproj">
+      location = "group:LociApp/LociApp.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:SuperMemoKit">
    </FileRef>
 </Workspace>
