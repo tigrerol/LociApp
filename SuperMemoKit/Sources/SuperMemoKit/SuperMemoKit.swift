@@ -11,6 +11,28 @@ import Foundation
 /// - Load balancing support for review scheduling
 /// - Separation of practice sessions vs due reviews
 
+// MARK: - Version Information
+
+/// SuperMemoKit version and build information
+public struct SuperMemoKitInfo {
+    public static let version = "1.0.0"
+    public static let buildDate = "2025-07-10"
+    public static let features = [
+        "90-day interval cap",
+        "Accuracy bias multiplier",
+        "Load balancing support",
+        "Enhanced spaced repetition"
+    ]
+    
+    public static var versionString: String {
+        return "SuperMemoKit v\(version) (\(buildDate))"
+    }
+    
+    public static var fullDescription: String {
+        return "\(versionString) - Enhanced SuperMemo with: \(features.joined(separator: ", "))"
+    }
+}
+
 // MARK: - SuperMemo Quality Ratings
 
 /// Quality ratings for SuperMemo reviews

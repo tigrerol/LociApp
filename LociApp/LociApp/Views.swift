@@ -3,6 +3,7 @@ import SwiftData
 import UniformTypeIdentifiers
 import Foundation
 import Combine
+import SuperMemoKit
 
 // MARK: - Helper Views
 
@@ -1548,6 +1549,50 @@ struct ScheduleView: View {
                         Section(header: Text(group.key)) {
                             ForEach(group.value, id: \.id) { location in
                                 ScheduleRowView(location: location, itineraryName: getItineraryName(for: location))
+                            }
+                        }
+                    }
+                    
+                    Section("SuperMemo Algorithm") {
+                        HStack {
+                            Image(systemName: "brain.filled.head.profile")
+                                .foregroundStyle(.purple)
+                                .frame(width: 20)
+                            
+                            Text("Version")
+                            
+                            Spacer()
+                            
+                            Text(SuperMemoKitInfo.versionString)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                    .frame(width: 20)
+                                
+                                Text("Enhanced Features")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                
+                                Spacer()
+                            }
+                            
+                            ForEach(SuperMemoKitInfo.features, id: \.self) { feature in
+                                HStack {
+                                    Text("•")
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 20)
+                                    
+                                    Text(feature)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    
+                                    Spacer()
+                                }
                             }
                         }
                     }
