@@ -564,6 +564,7 @@ struct ReviewModeView: View {
     @State private var selectedItinerary: Itinerary?
     @State private var reviewType: ReviewType = .multiple
     @State private var hasSelectedReviewType = false
+    private let notificationService = NotificationService.shared
     
     enum ReviewType {
         case single
@@ -1017,10 +1018,17 @@ struct ReviewModeView: View {
                 }
             } else {
                 loadDueLocations()
+                updateBadgeCount()
             }
         } catch {
             print("Error reviewing location: \(error)")
         }
+    }
+    
+    private func updateBadgeCount() {
+        let now = Date()
+        let dueCount = locations.filter { $0.nextReview <= now }.count
+        notificationService.updateBadgeCount(to: dueCount)
     }
 }
 
@@ -1041,6 +1049,7 @@ struct ReverseModeView: View {
     @State private var reviewType: ReviewType = .multiple
     @State private var hasSelectedReviewType = false
     @FocusState private var isInputFocused: Bool
+    private let notificationService = NotificationService.shared
     
     enum ReviewType {
         case single
@@ -1507,10 +1516,17 @@ struct ReverseModeView: View {
                 resetView()
             } else {
                 loadDueLocations()
+                updateBadgeCount()
             }
         } catch {
             print("Error reviewing location: \(error)")
         }
+    }
+    
+    private func updateBadgeCount() {
+        let now = Date()
+        let dueCount = locations.filter { $0.nextReview <= now }.count
+        notificationService.updateBadgeCount(to: dueCount)
     }
     
     private func resetView() {
