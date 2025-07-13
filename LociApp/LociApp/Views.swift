@@ -158,6 +158,13 @@ struct LearningModeView: View {
     @State private var urlToImport: URL?
     @State private var audioMode = false
     @State private var speechService = SpeechService()
+    @State private var hapticTrigger = 0
+    @State private var milestoneHapticTrigger = 0
+    
+    // Computed property to check if current location is a milestone
+    private var isMilestoneLocation: Bool {
+        (currentLocationIndex + 1) % 5 == 0
+    }
     
     var body: some View {
         NavigationView {
@@ -405,6 +412,13 @@ struct LearningModeView: View {
                     Text("Step \(currentLocationIndex + 1)")
                         .font(.title2)
                         .fontWeight(.semibold)
+                        .foregroundColor(isMilestoneLocation ? .white : .primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isMilestoneLocation ? Color.orange : Color.clear)
+                        )
                     
                     if let uiImage = UIImage(data: location.imageData) {
                         Image(uiImage: uiImage)
@@ -434,6 +448,7 @@ struct LearningModeView: View {
                             .font(.title)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
+                            .foregroundColor(isMilestoneLocation ? Color.orange : .primary)
                         
                         if speechService.isSpeaking {
                             Image(systemName: "speaker.wave.2.fill")
@@ -455,6 +470,12 @@ struct LearningModeView: View {
                             speechService.stop()
                             if currentLocationIndex > 0 {
                                 currentLocationIndex -= 1
+                                // Check if we're at a milestone location (5, 10, 15, etc.)
+                                if isMilestoneLocation {
+                                    milestoneHapticTrigger += 1
+                                } else {
+                                    hapticTrigger += 1
+                                }
                             }
                         }
                         .disabled(currentLocationIndex == 0 || (audioMode && speechService.isSpeaking))
@@ -477,6 +498,12 @@ struct LearningModeView: View {
                             speechService.stop()
                             if currentLocationIndex < sortedLocations.count - 1 {
                                 currentLocationIndex += 1
+                                // Check if we're at a milestone location (5, 10, 15, etc.)
+                                if isMilestoneLocation {
+                                    milestoneHapticTrigger += 1
+                                } else {
+                                    hapticTrigger += 1
+                                }
                             }
                         }
                         .disabled(currentLocationIndex == sortedLocations.count - 1 || (audioMode && speechService.isSpeaking))
@@ -492,6 +519,8 @@ struct LearningModeView: View {
                 .onChange(of: currentLocationIndex) { oldValue, newValue in
                     speakCurrentLocationIfNeeded()
                 }
+                .sensoryFeedback(.impact(weight: .light, intensity: 0.7), trigger: hapticTrigger)
+                .sensoryFeedback(.impact(weight: .medium, intensity: 2.5), trigger: milestoneHapticTrigger)
                 .onChange(of: audioMode) { oldValue, newValue in
                     if newValue {
                         speakCurrentLocationIfNeeded()
@@ -595,13 +624,8 @@ struct ReviewModeView: View {
                     // Single itinerary mode - offer to review all locations
                     noReviewsDueSingleItinerary
                 } else {
-                    // Multiple itinerary mode - standard message
-                    ContentUnavailableView(
-                        "No Reviews Due",
-                        systemImage: "checkmark.circle",
-                        description: Text("All locations are up to date! Come back later or import more itineraries.")
-                    )
-                    .navigationTitle("Review")
+                    // Multiple itinerary mode - enhanced message with back button and review anyway
+                    noReviewsDueMultipleItineraries
                 }
             } else if isLoading {
                 ProgressView("Loading reviews...")
@@ -762,6 +786,56 @@ struct ReviewModeView: View {
                 Button(action: {
                     selectedItinerary = nil
                     reviewType = .multiple
+                    hasSelectedReviewType = false
+                }) {
+                    Text("Back to Type Selection")
+                        .font(.body)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.horizontal)
+            
+            Spacer()
+        }
+        .padding()
+        .navigationTitle("Review")
+    }
+    
+    private var noReviewsDueMultipleItineraries: some View {
+        VStack(spacing: 30) {
+            VStack(spacing: 20) {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 60))
+                    .foregroundColor(.green)
+                
+                Text("All Caught Up!")
+                    .font(.title)
+                    .fontWeight(.bold)
+                
+                Text("No reviews are due for any itinerary right now.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+            }
+            
+            VStack(spacing: 15) {
+                Button(action: {
+                    loadAllLocationsFromAllItineraries()
+                }) {
+                    HStack {
+                        Image(systemName: "repeat.circle.fill")
+                            .font(.title2)
+                        Text("Review All Locations Anyway")
+                            .font(.headline)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                
+                Button(action: {
                     hasSelectedReviewType = false
                 }) {
                     Text("Back to Type Selection")
@@ -1001,6 +1075,19 @@ struct ReviewModeView: View {
         isLoading = false
     }
     
+    private func loadAllLocationsFromAllItineraries() {
+        isLoading = true
+        do {
+            dueLocations = try superMemoService.getDueLocations(from: nil, forceAll: true)
+            currentLocationIndex = 0
+            reviewStep = .sequence
+        } catch {
+            print("Error loading all locations from all itineraries: \(error)")
+            dueLocations = []
+        }
+        isLoading = false
+    }
+    
     private func rateLocation(quality: SuperMemoQuality) {
         let location = dueLocations[currentLocationIndex]
         
@@ -1079,13 +1166,8 @@ struct ReverseModeView: View {
                     // Single itinerary mode - offer to review all locations
                     noReverseReviewsDueSingleItinerary
                 } else {
-                    // Multiple itinerary mode - standard message
-                    ContentUnavailableView(
-                        "No Reviews Due",
-                        systemImage: "checkmark.circle",
-                        description: Text("All locations are up to date! Come back later or import more itineraries.")
-                    )
-                    .navigationTitle("Reverse")
+                    // Multiple itinerary mode - enhanced message with back button and review anyway
+                    noReverseReviewsDueMultipleItineraries
                 }
             } else if isLoading {
                 ProgressView("Loading reviews...")
@@ -1246,6 +1328,56 @@ struct ReverseModeView: View {
                 Button(action: {
                     selectedItinerary = nil
                     reviewType = .multiple
+                    hasSelectedReviewType = false
+                }) {
+                    Text("Back to Type Selection")
+                        .font(.body)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.horizontal)
+            
+            Spacer()
+        }
+        .padding()
+        .navigationTitle("Reverse")
+    }
+    
+    private var noReverseReviewsDueMultipleItineraries: some View {
+        VStack(spacing: 30) {
+            VStack(spacing: 20) {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 60))
+                    .foregroundColor(.green)
+                
+                Text("All Caught Up!")
+                    .font(.title)
+                    .fontWeight(.bold)
+                
+                Text("No reverse reviews are due for any itinerary right now.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+            }
+            
+            VStack(spacing: 15) {
+                Button(action: {
+                    loadAllReverseLocationsFromAllItineraries()
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.title2)
+                        Text("Reverse Review All Locations Anyway")
+                            .font(.headline)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                
+                Button(action: {
                     hasSelectedReviewType = false
                 }) {
                     Text("Back to Type Selection")
@@ -1492,6 +1624,21 @@ struct ReverseModeView: View {
             reverseStep = .nameInput
         } catch {
             print("Error loading all locations: \(error)")
+            dueLocations = []
+        }
+        isLoading = false
+    }
+    
+    private func loadAllReverseLocationsFromAllItineraries() {
+        isLoading = true
+        do {
+            dueLocations = try superMemoService.getDueLocations(from: nil, forceAll: true)
+            // Shuffle locations for random order in reverse mode
+            dueLocations.shuffle()
+            currentLocationIndex = 0
+            reverseStep = .nameInput
+        } catch {
+            print("Error loading all reverse locations from all itineraries: \(error)")
             dueLocations = []
         }
         isLoading = false
